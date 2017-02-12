@@ -154,9 +154,24 @@ def score_output(scores, filename):
 # sentences_file: the file of sentences that were scores (in this case: data/Brown_train.txt) 
 # This function returns a float, perplexity, the total perplexity of the corpus
 def calc_perplexity(scores_file, sentences_file):
+    # score data
+    infile = open(scores_file, 'r')
+    scores = infile.readlines()
+    infile.close()
 
-    perplexity = 0
+    log_prob = 0
+    count = 0
+    i = 0
+    # traverse sentences
+    infile = open(sentences_file, 'r')
+    for str in infile:
+        count += len(str.split(' '))
+        log_prob += float(scores[i])
+        i += 1
+    infile.close()
 
+    # 2 ** ((-1/<word counts>) * <sum of all log probabilities>)
+    perplexity = 2 ** (-log_prob / count)
     return perplexity 
 
 # TODO: IMPLEMENT THIS FUNCTION
