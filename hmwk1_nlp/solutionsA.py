@@ -17,6 +17,23 @@ def count_list_items(lst):
 
     return dd
 
+# Return unigram, bigram or trigram tuple of given sentence
+# The number of grams is specified by argument n
+def sentence_to_ngram(str, n):
+    l = [START_SYMBOL, START_SYMBOL]
+    l.extend(str.rstrip().split(' '))
+    l.extend([STOP_SYMBOL])
+
+    r = []
+    if n == 1:
+        r = l[2:]
+    elif n == 2:
+        r = list(nltk.bigrams(l[1:]))
+    elif n == 3:
+        r = list(nltk.trigrams(l))
+
+    return r
+
 # TODO: IMPLEMENT THIS FUNCTION
 # Calculates unigram, bigram, and trigram probabilities given a training corpus
 # training_corpus: is a list of the sentences. Each sentence is a string with tokens separated by spaces, ending in a newline character.
@@ -30,19 +47,21 @@ def calc_probabilities(training_corpus):
     unigram_tuples = []
     bigram_tuples = []
     trigram_tuples = []
+    num_start_symbols = 0
     for tc in training_corpus:
-        l = [START_SYMBOL, START_SYMBOL]
-        l.extend(tc.rstrip().split(' '))
-        l.extend([STOP_SYMBOL])
-
-        unigram_tuples.extend(l[2:])
-        bigram_tuples.extend(list(nltk.bigrams(l[1:])))
-        trigram_tuples.extend(list(nltk.trigrams(l)))
+        unigram_tuples.extend(sentence_to_ngram(tc, 1))
+        bigram_tuples.extend(sentence_to_ngram(tc, 2))
+        trigram_tuples.extend(sentence_to_ngram(tc, 3))
+        num_start_symbols += 1
 
     # ngram counts
     unigram_counts = count_list_items(unigram_tuples)
     bigram_counts = count_list_items(bigram_tuples)
     trigram_counts = count_list_items(trigram_tuples)
+    # Manually assign the count of START_SYMBOL in unigram and bigram for calculation of 
+    # bigram and trigram probabilities
+    unigram_counts[START_SYMBOL] = float(num_start_symbols)
+    bigram_counts[(START_SYMBOL, START_SYMBOL)] = float(num_start_symbols)
 
     # ngram log probabilities
     unigram_total = len(unigram_tuples)
@@ -57,15 +76,17 @@ def calc_probabilities(training_corpus):
         n = bigram_counts[t[0:2]]
         trigram_p[t] = math.log(trigram_counts[t]/n, 2) if n else MINUS_INFINITY_SENTENCE_LOG_PROB
 
-    #print unigram_p['captain']
-    #print unigram_p['captain\'s']
-    #print unigram_p['captaincy']
-    #print bigram_p[('and', 'religion')]
-    #print bigram_p[('and', 'religious')]
-    #print bigram_p[('and', 'religiously')]
-    #print trigram_p[('and', 'not', 'a')]
-    #print trigram_p[('and', 'not', 'by')]
-    #print trigram_p[('and', 'not', 'come')]
+    print "\nA1 verifications"
+    print unigram_p['captain']
+    print unigram_p['captain\'s']
+    print unigram_p['captaincy']
+    print bigram_p[('and', 'religion')]
+    print bigram_p[('and', 'religious')]
+    print bigram_p[('and', 'religiously')]
+    print trigram_p[('and', 'not', 'a')]
+    print trigram_p[('and', 'not', 'by')]
+    print trigram_p[('and', 'not', 'come')]
+
     return unigram_p, bigram_p, trigram_p
 
 # Prints the output for q1
@@ -100,6 +121,22 @@ def q1_output(unigrams, bigrams, trigrams, filename):
 # This function must return a python list of scores, where the first element is the score of the first sentence, etc. 
 def score(ngram_p, n, corpus):
     scores = []
+
+    for c in corpus:
+        s = 0
+        for g in sentence_to_ngram(c, n):
+            p = ngram_p.get(g, 'NA')
+            if p == 'NA':
+                s = MINUS_INFINITY_SENTENCE_LOG_PROB
+                break
+            s += p
+        scores.append(s)
+
+    print "\nA2 verifications " + str(n)
+    print scores[0]
+    print scores[1]
+    print scores[2]
+
     return scores
 
 # Outputs a score to a file
@@ -145,11 +182,10 @@ def main():
 
     # calculate ngram probabilities (question 1)
     unigrams, bigrams, trigrams = calc_probabilities(corpus)
-
+    
     # question 1 output
-    q1_output(unigrams, bigrams, trigrams, OUTPUT_PATH + 'A1.txt')
+    #q1_output(unigrams, bigrams, trigrams, OUTPUT_PATH + 'A1.txt')
 
-    return
     # score sentences (question 2)
     uniscores = score(unigrams, 1, corpus)
     biscores = score(bigrams, 2, corpus)
@@ -159,7 +195,7 @@ def main():
     score_output(uniscores, OUTPUT_PATH + 'A2.uni.txt')
     score_output(biscores, OUTPUT_PATH + 'A2.bi.txt')
     score_output(triscores, OUTPUT_PATH + 'A2.tri.txt')
-
+    return
     # linear interpolation (question 3)
     linearscores = linearscore(unigrams, bigrams, trigrams, corpus)
 
