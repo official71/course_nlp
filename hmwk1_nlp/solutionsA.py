@@ -180,6 +180,41 @@ def calc_perplexity(scores_file, sentences_file):
 # Like score(), this function returns a python list of scores
 def linearscore(unigrams, bigrams, trigrams, corpus):
     scores = []
+    ulambda = blambda = tlambda = 1
+    factor = ulambda + blambda + tlambda
+
+    for c in corpus:
+        s = 0
+        unigram_tuples = sentence_to_ngram(c, 1)
+        bigram_tuples = sentence_to_ngram(c, 2)
+        trigram_tuples = sentence_to_ngram(c, 3)
+
+        for i in range(len(unigram_tuples)):
+            uni_log_prob = unigrams.get(unigram_tuples[i], 'NA')
+            bi_log_prob = bigrams.get(bigram_tuples[i], 'NA')
+            tri_log_prob = trigrams.get(trigram_tuples[i], 'NA')
+
+            # encountering a new unigram, set whole sentence to -inft
+            if uni_log_prob == bi_log_prob == tri_log_prob == 'NA':
+                s = MINUS_INFINITY_SENTENCE_LOG_PROB
+                break
+
+            # apply lambda factors to probabilities
+            uni_prob = ulambda * (2 ** uni_log_prob) if uni_log_prob != 'NA' else 0
+            bi_prob = blambda * (2 ** bi_log_prob) if bi_log_prob != 'NA' else 0
+            tri_prob = tlambda * (2 ** tri_log_prob) if tri_log_prob != 'NA' else 0
+            p = float(uni_prob + bi_prob + tri_prob) / factor
+            s += math.log(p, 2)
+
+        scores.append(s)
+
+    print "\nA3 verifications"
+    print scores[0]
+    print scores[1]
+    print scores[2]
+    print scores[3]
+    print scores[4]
+
     return scores
 
 DATA_PATH = 'data/'
@@ -197,9 +232,9 @@ def main():
 
     # calculate ngram probabilities (question 1)
     unigrams, bigrams, trigrams = calc_probabilities(corpus)
-    
+
     # question 1 output
-    #q1_output(unigrams, bigrams, trigrams, OUTPUT_PATH + 'A1.txt')
+    q1_output(unigrams, bigrams, trigrams, OUTPUT_PATH + 'A1.txt')
 
     # score sentences (question 2)
     uniscores = score(unigrams, 1, corpus)
@@ -210,13 +245,13 @@ def main():
     score_output(uniscores, OUTPUT_PATH + 'A2.uni.txt')
     score_output(biscores, OUTPUT_PATH + 'A2.bi.txt')
     score_output(triscores, OUTPUT_PATH + 'A2.tri.txt')
-    return
+
     # linear interpolation (question 3)
     linearscores = linearscore(unigrams, bigrams, trigrams, corpus)
 
     # question 3 output
     score_output(linearscores, OUTPUT_PATH + 'A3.txt')
-
+    return
     # open Sample1 and Sample2 (question 5)
     infile = open(DATA_PATH + 'Sample1.txt', 'r')
     sample1 = infile.readlines()
