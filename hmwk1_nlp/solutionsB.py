@@ -29,12 +29,12 @@ def split_wordtags(brown_train):
             tags.append(p[1])
         words.append(STOP_SYMBOL)
         tags.append(STOP_SYMBOL)
-    brown_words.append(words)
-    brown_tags.append(tags)
+        brown_words.append(words)
+        brown_tags.append(tags)
 
     print "\nB1 verifications"
-    print brown_words[0]
-    print brown_tags[0]
+    print brown_words[2335]
+    print brown_tags[2335]
 
     return brown_words, brown_tags
 
