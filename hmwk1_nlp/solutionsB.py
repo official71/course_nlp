@@ -2,6 +2,7 @@ import sys
 import nltk
 import math
 import time
+from collections import defaultdict
 
 START_SYMBOL = '*'
 STOP_SYMBOL = 'STOP'
@@ -38,12 +39,42 @@ def split_wordtags(brown_train):
 
     return brown_words, brown_tags
 
+# Return {item : count} in given list
+# Because the list.count() method within for loop is too slow
+def count_list_items(lst):
+    dd = defaultdict(float)
+    for i in lst:
+        dd[i] += 1
+
+    return dd
 
 # TODO: IMPLEMENT THIS FUNCTION
 # This function takes tags from the training data and calculates tag trigram probabilities.
 # It returns a python dictionary where the keys are tuples that represent the tag trigram, and the values are the log probability of that trigram
 def calc_trigrams(brown_tags):
+    # ngram tuples
+    bigram_tuples = []
+    trigram_tuples = []
+    for bt in brown_tags:
+        bigram_tuples.extend(nltk.bigrams(bt))
+        trigram_tuples.extend(nltk.trigrams(bt))
+
+    # ngram counts
+    bigram_counts = count_list_items(bigram_tuples)
+    trigram_counts = count_list_items(trigram_tuples)
+
+    # trigram log probabilities
     q_values = {}
+    for t in trigram_counts:
+        n = bigram_counts[t[0:2]]
+        q_values[t] = math.log(trigram_counts[t]/n, 2) if n else LOG_PROB_OF_ZERO
+
+    print "\nB2 verifications"
+    print q_values[('*','*','ADJ')]
+    print q_values[('ADJ','.','X')]
+    print q_values[('NOUN','DET','NOUN')]
+    print q_values[('X','.','STOP')]
+
     return q_values
 
 # This function takes output from calc_trigrams() and outputs it in the proper format
@@ -170,13 +201,13 @@ def main():
 
     # split words and tags, and add start and stop symbols (question 1)
     brown_words, brown_tags = split_wordtags(brown_train)
-    return
+
     # calculate tag trigram probabilities (question 2)
     q_values = calc_trigrams(brown_tags)
 
     # question 2 output
     q2_output(q_values, OUTPUT_PATH + 'B2.txt')
-
+    return
     # calculate list of words with count > 5 (question 3)
     known_words = calc_known(brown_words)
 
