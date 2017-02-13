@@ -93,7 +93,16 @@ def q2_output(q_values, filename):
 # brown_words is a python list where every element is a python list of the words of a particular sentence.
 # Note: words that appear exactly 5 times should be considered rare!
 def calc_known(brown_words):
+    unigram_counts = defaultdict(int)
+    for bw in brown_words:
+        for w in bw:
+            unigram_counts[w] += 1
+
     known_words = set([])
+    for w in unigram_counts:
+        if unigram_counts[w] > RARE_WORD_MAX_FREQ:
+            known_words.add(w)
+
     return known_words
 
 # TODO: IMPLEMENT THIS FUNCTION
@@ -101,6 +110,19 @@ def calc_known(brown_words):
 # Returns the equivalent to brown_words but replacing the unknown words by '_RARE_' (use RARE_SYMBOL constant)
 def replace_rare(brown_words, known_words):
     brown_words_rare = []
+    for bw in brown_words:
+        words = []
+        for w in bw:
+            if w in known_words:
+                words.append(w)
+            else:
+                words.append(RARE_SYMBOL)
+        brown_words_rare.append(words)
+
+    print "\nB3 verifications"
+    print ' '.join(brown_words_rare[0])
+    print ' '.join(brown_words_rare[1])
+
     return brown_words_rare
 
 # This function takes the ouput from replace_rare and outputs it to a file
@@ -207,7 +229,7 @@ def main():
 
     # question 2 output
     q2_output(q_values, OUTPUT_PATH + 'B2.txt')
-    return
+
     # calculate list of words with count > 5 (question 3)
     known_words = calc_known(brown_words)
 
@@ -216,7 +238,7 @@ def main():
 
     # question 3 output
     q3_output(brown_words_rare, OUTPUT_PATH + "B3.txt")
-
+    return
     # calculate emission probabilities (question 4)
     e_values, taglist = calc_emission(brown_words_rare, brown_tags)
 
