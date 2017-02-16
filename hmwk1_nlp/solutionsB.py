@@ -141,6 +141,35 @@ def q3_output(rare, filename):
 def calc_emission(brown_words_rare, brown_tags):
     e_values = {}
     taglist = set([])
+
+    # calculate tag counts
+    tag_counts = defaultdict(int)
+    for bt in brown_tags:
+        for t in bt:
+            tag_counts[t] += 1
+
+    # taglist
+    for t in tag_counts:
+        taglist.add(t)
+
+    # calculate emission counts
+    e_counts = defaultdict(int)
+    for i in range(len(brown_words_rare)):
+        wl = brown_words_rare[i]
+        tl = brown_tags[i]
+        for j in range(len(wl)):
+            e_counts[(wl[j], tl[j])] += 1
+
+    # calculate emission log probabilities
+    for pair in e_counts:
+        e_values[pair] = math.log(float(e_counts[pair])/tag_counts[pair[1]], 2) if tag_counts[pair[1]] else LOG_PROB_OF_ZERO
+
+    print "\nB4 verifications"
+    print e_values[('America', 'NOUN')]
+    print e_values[('Columbia', 'NOUN')]
+    print e_values[('New', 'ADJ')]
+    print e_values[('York', 'NOUN')]
+
     return e_values, taglist
 
 # This function takes the output from calc_emissions() and outputs it
@@ -228,7 +257,7 @@ def main():
     q_values = calc_trigrams(brown_tags)
 
     # question 2 output
-    q2_output(q_values, OUTPUT_PATH + 'B2.txt')
+    #q2_output(q_values, OUTPUT_PATH + 'B2.txt')
 
     # calculate list of words with count > 5 (question 3)
     known_words = calc_known(brown_words)
@@ -237,14 +266,14 @@ def main():
     brown_words_rare = replace_rare(brown_words, known_words)
 
     # question 3 output
-    q3_output(brown_words_rare, OUTPUT_PATH + "B3.txt")
-    return
+    #q3_output(brown_words_rare, OUTPUT_PATH + "B3.txt")
+
     # calculate emission probabilities (question 4)
     e_values, taglist = calc_emission(brown_words_rare, brown_tags)
 
     # question 4 output
     q4_output(e_values, OUTPUT_PATH + "B4.txt")
-
+    return
     # delete unneceessary data
     del brown_train
     del brown_words_rare
