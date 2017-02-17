@@ -76,16 +76,16 @@ def calc_probabilities(training_corpus):
         n = bigram_counts[t[0:2]]
         trigram_p[t] = math.log(trigram_counts[t]/n, 2) if n else MINUS_INFINITY_SENTENCE_LOG_PROB
 
-    #print "\nA1 verifications"
-    #print unigram_p['captain']
-    #print unigram_p['captain\'s']
-    #print unigram_p['captaincy']
-    #print bigram_p[('and', 'religion')]
-    #print bigram_p[('and', 'religious')]
-    #print bigram_p[('and', 'religiously')]
-    #print trigram_p[('and', 'not', 'a')]
-    #print trigram_p[('and', 'not', 'by')]
-    #print trigram_p[('and', 'not', 'come')]
+    # print "\nA1 verifications"
+    # print unigram_p['captain']
+    # print unigram_p['captain\'s']
+    # print unigram_p['captaincy']
+    # print bigram_p[('and', 'religion')]
+    # print bigram_p[('and', 'religious')]
+    # print bigram_p[('and', 'religiously')]
+    # print trigram_p[('and', 'not', 'a')]
+    # print trigram_p[('and', 'not', 'by')]
+    # print trigram_p[('and', 'not', 'come')]
 
     return unigram_p, bigram_p, trigram_p
 
@@ -132,10 +132,10 @@ def score(ngram_p, n, corpus):
             s += p
         scores.append(s)
 
-    #print "\nA2 verifications " + str(n)
-    #print scores[0]
-    #print scores[1]
-    #print scores[2]
+    # print "\nA2 verifications " + str(n)
+    # print scores[0]
+    # print scores[1]
+    # print scores[2]
 
     return scores
 
@@ -208,12 +208,12 @@ def linearscore(unigrams, bigrams, trigrams, corpus):
 
         scores.append(s)
 
-    #print "\nA3 verifications"
-    #print scores[0]
-    #print scores[1]
-    #print scores[2]
-    #print scores[3]
-    #print scores[4]
+    # print "\nA3 verifications"
+    # print scores[0]
+    # print scores[1]
+    # print scores[2]
+    # print scores[3]
+    # print scores[4]
 
     return scores
 

@@ -33,9 +33,9 @@ def split_wordtags(brown_train):
         brown_words.append(words)
         brown_tags.append(tags)
 
-    print "\nB1 verifications"
-    print brown_words[2335]
-    print brown_tags[2335]
+    # print "\nB1 verifications"
+    # print brown_words[2335]
+    # print brown_tags[2335]
 
     return brown_words, brown_tags
 
@@ -69,11 +69,11 @@ def calc_trigrams(brown_tags):
         n = bigram_counts[t[0:2]]
         q_values[t] = math.log(trigram_counts[t]/n, 2) if n else LOG_PROB_OF_ZERO
 
-    print "\nB2 verifications"
-    print q_values[('*','*','ADJ')]
-    print q_values[('ADJ','.','X')]
-    print q_values[('NOUN','DET','NOUN')]
-    print q_values[('X','.','STOP')]
+    # print "\nB2 verifications"
+    # print q_values[('*','*','ADJ')]
+    # print q_values[('ADJ','.','X')]
+    # print q_values[('NOUN','DET','NOUN')]
+    # print q_values[('X','.','STOP')]
 
     return q_values
 
@@ -119,9 +119,9 @@ def replace_rare(brown_words, known_words):
                 words.append(RARE_SYMBOL)
         brown_words_rare.append(words)
 
-    print "\nB3 verifications"
-    print ' '.join(brown_words_rare[0])
-    print ' '.join(brown_words_rare[1])
+    # print "\nB3 verifications"
+    # print ' '.join(brown_words_rare[0])
+    # print ' '.join(brown_words_rare[1])
 
     return brown_words_rare
 
@@ -164,11 +164,11 @@ def calc_emission(brown_words_rare, brown_tags):
     for pair in e_counts:
         e_values[pair] = math.log(float(e_counts[pair])/tag_counts[pair[1]], 2) if tag_counts[pair[1]] else LOG_PROB_OF_ZERO
 
-    print "\nB4 verifications"
-    print e_values[('America', 'NOUN')]
-    print e_values[('Columbia', 'NOUN')]
-    print e_values[('New', 'ADJ')]
-    print e_values[('York', 'NOUN')]
+    # print "\nB4 verifications"
+    # print e_values[('America', 'NOUN')]
+    # print e_values[('Columbia', 'NOUN')]
+    # print e_values[('New', 'ADJ')]
+    # print e_values[('York', 'NOUN')]
 
     return e_values, taglist
 
@@ -233,11 +233,11 @@ def forward(brown_dev_words,taglist, known_words, q_values, e_values):
         p = math.log(prob, 2) if prob else LOG_PROB_OF_ZERO
         probs.append(str(p) + '\n')
 
-    print "\nB5 verifications"
-    print probs[1].rstrip()
-    print probs[2].rstrip()
-    print probs[3].rstrip()
-    print probs[4].rstrip()
+    # print "\nB5 verifications"
+    # print probs[1].rstrip()
+    # print probs[2].rstrip()
+    # print probs[3].rstrip()
+    # print probs[4].rstrip()
 
     return probs
 
@@ -326,8 +326,6 @@ def viterbi(brown_dev_words, taglist, known_words, q_values, e_values):
         # reconstruct the maximum likelihood tag sequence, from tail to head
         tags = [''] * n
         (tag_k_1, tag_k) = pair_max
-        # tag_k = pair_max[1]
-        # tag_k_1 = pair_max[0]
         tags[n-1] = tag_k
         tags[n-2] = tag_k_1
         for i in range(n-3, -1, -1):
@@ -339,9 +337,9 @@ def viterbi(brown_dev_words, taglist, known_words, q_values, e_values):
         # tagged sentence
         tagged.append(' '.join(w + '/' + t for (w,t) in zip(bw, tags)) + '\n')
         
-    print "\nB6 verifications"
-    print tagged[0].rstrip()
-    print tagged[1].rstrip()
+    # print "\nB6 verifications"
+    # print tagged[0].rstrip()
+    # print tagged[1].rstrip()
 
     return tagged
 
@@ -372,9 +370,9 @@ def nltk_tagger(brown_words, brown_tags, brown_dev_words):
     for bw in brown_dev_words:
         tagged.append(' '.join(w + '/' + t for (w,t) in trigram_tagger.tag(bw)) + '\n')
 
-    print "\nB7 verifications"
-    print tagged[0].rstrip()
-    print tagged[1].rstrip()
+    # print "\nB7 verifications"
+    # print tagged[0].rstrip()
+    # print tagged[1].rstrip()
 
     return tagged
 
