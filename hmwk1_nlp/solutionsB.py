@@ -185,7 +185,57 @@ def q4_output(e_values, filename):
 def forward(brown_dev_words,taglist, known_words, q_values, e_values):
     probs = []
 
+    for bw in brown_dev_words:
+        n = len(bw)
+
+        # pi_list is a list of defaultdict(float), presumably using dict is faster than a 3-d matrix
+        # the length of pi_list is n+1, where [0] is for START_SYMBOL
+        pi_list = []
+
+        # init, pi(0, *, *) = 1
+        pi = defaultdict(float)
+        pi[(START_SYMBOL, START_SYMBOL)] = 1
+        pi_list.append(pi)
+
+        for k in range(1, n+1):
+            # calculate pi(k, S_k, S_k-1) for all possible (S_k, S_k-1)
+            pi = defaultdict(float)
+            word = bw[k-1] if bw[k-1] in known_words else RARE_SYMBOL
+
+            for tag_k in taglist:
+                # of each possible tag S_k, if the emission probability (word, tag) == 0, skip
+                e_val = 2 ** e_values[(word, tag_k)] if (word, tag_k) in e_values else 0
+                if e_val == 0:
+                    continue
+
+                for tag_k_1 in taglist:
+                    # for each tag S_k-1, calculate the sum of q(S_k-2, S_k-1, S_k)*pi(k-1, S_k-2, S_k-1) for each possible tag S_K-2
+                    sum = float(0)
+                    for tag_k_2 in taglist:
+                        q_val = 2 ** q_values[(tag_k_2, tag_k_1, tag_k)] if (tag_k_2, tag_k_1, tag_k) in q_values else 0
+                        sum += pi_list[k-1][(tag_k_2, tag_k_1)] * q_val
+
+                    # update this pi(k, S_k-1, S_K)
+                    pi[(tag_k_1, tag_k)] = sum * e_val
+            pi_list.append(pi)
+
+        # the probability of the sentence is sum of pi(n, S_n-1, S_n)*q(S_n-1, S_n, STOP_SYMBOL)
+        prob = 0
+        for pair in pi_list[n]:
+            q_val = 2 ** q_values[(pair[0], pair[1], STOP_SYMBOL)] if (pair[0], pair[1], STOP_SYMBOL) in q_values else 0
+            prob += pi_list[n][pair] * q_val
+
+        p = math.log(prob, 2) if prob else LOG_PROB_OF_ZERO
+        probs.append(str(p) + '\n')
+
+    print "\nB5 verifications"
+    print probs[1].rstrip()
+    print probs[2].rstrip()
+    print probs[3].rstrip()
+    print probs[4].rstrip()
+
     return probs
+
 # This function takes the output of forward() and outputs it to file
 def q5_output(tagged, filename):
     outfile = open(filename, 'w')
@@ -272,8 +322,8 @@ def main():
     e_values, taglist = calc_emission(brown_words_rare, brown_tags)
 
     # question 4 output
-    q4_output(e_values, OUTPUT_PATH + "B4.txt")
-    return
+    #q4_output(e_values, OUTPUT_PATH + "B4.txt")
+
     # delete unneceessary data
     del brown_train
     del brown_words_rare
@@ -293,7 +343,7 @@ def main():
     # question 5
     forward_probs = forward(brown_dev_words,taglist, known_words, q_values, e_values)
     q5_output(forward_probs, OUTPUT_PATH + 'B5.txt')
-
+    return
     # do viterbi on brown_dev_words (question 6)
     viterbi_tagged = viterbi(brown_dev_words, taglist, known_words, q_values, e_values)
 
