@@ -325,8 +325,9 @@ def viterbi(brown_dev_words, taglist, known_words, q_values, e_values):
 
         # reconstruct the maximum likelihood tag sequence, from tail to head
         tags = [''] * n
-        tag_k = pair_max[1]
-        tag_k_1 = pair_max[0]
+        (tag_k_1, tag_k) = pair_max
+        # tag_k = pair_max[1]
+        # tag_k_1 = pair_max[0]
         tags[n-1] = tag_k
         tags[n-2] = tag_k_1
         for i in range(n-3, -1, -1):
@@ -339,8 +340,8 @@ def viterbi(brown_dev_words, taglist, known_words, q_values, e_values):
         tagged.append(' '.join(w + '/' + t for (w,t) in zip(bw, tags)) + '\n')
         
     print "\nB6 verifications"
-    print tagged[0]
-    print tagged[1]
+    print tagged[0].rstrip()
+    print tagged[1].rstrip()
 
     return tagged
 
@@ -362,7 +363,19 @@ def nltk_tagger(brown_words, brown_tags, brown_dev_words):
     training = [ zip(brown_words[i],brown_tags[i]) for i in xrange(len(brown_words)) ]
 
     # IMPLEMENT THE REST OF THE FUNCTION HERE
+    default_tagger = nltk.DefaultTagger('NOUN')
+    bigram_tagger = nltk.BigramTagger(training, backoff=default_tagger) 
+    trigram_tagger = nltk.TrigramTagger(training, backoff=bigram_tagger)
+
     tagged = []
+
+    for bw in brown_dev_words:
+        tagged.append(' '.join(w + '/' + t for (w,t) in trigram_tagger.tag(bw)) + '\n')
+
+    print "\nB7 verifications"
+    print tagged[0].rstrip()
+    print tagged[1].rstrip()
+
     return tagged
 
 # This function takes the output of nltk_tagger() and outputs it to file
@@ -391,7 +404,7 @@ def main():
     q_values = calc_trigrams(brown_tags)
 
     # question 2 output
-    #q2_output(q_values, OUTPUT_PATH + 'B2.txt')
+    q2_output(q_values, OUTPUT_PATH + 'B2.txt')
 
     # calculate list of words with count > 5 (question 3)
     known_words = calc_known(brown_words)
@@ -400,13 +413,13 @@ def main():
     brown_words_rare = replace_rare(brown_words, known_words)
 
     # question 3 output
-    #q3_output(brown_words_rare, OUTPUT_PATH + "B3.txt")
+    q3_output(brown_words_rare, OUTPUT_PATH + "B3.txt")
 
     # calculate emission probabilities (question 4)
     e_values, taglist = calc_emission(brown_words_rare, brown_tags)
 
     # question 4 output
-    #q4_output(e_values, OUTPUT_PATH + "B4.txt")
+    q4_output(e_values, OUTPUT_PATH + "B4.txt")
 
     # delete unneceessary data
     del brown_train
@@ -425,15 +438,15 @@ def main():
         brown_dev_words.append(sentence.split(" ")[:-1])
 
     # question 5
-    #forward_probs = forward(brown_dev_words,taglist, known_words, q_values, e_values)
-    #q5_output(forward_probs, OUTPUT_PATH + 'B5.txt')
+    forward_probs = forward(brown_dev_words,taglist, known_words, q_values, e_values)
+    q5_output(forward_probs, OUTPUT_PATH + 'B5.txt')
 
     # do viterbi on brown_dev_words (question 6)
     viterbi_tagged = viterbi(brown_dev_words, taglist, known_words, q_values, e_values)
 
     # question 6 output
     q6_output(viterbi_tagged, OUTPUT_PATH + 'B6.txt')
-    return
+
     # do nltk tagging here
     nltk_tagged = nltk_tagger(brown_words, brown_tags, brown_dev_words)
 
