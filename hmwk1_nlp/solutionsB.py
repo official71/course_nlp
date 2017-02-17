@@ -212,16 +212,21 @@ def forward(brown_dev_words,taglist, known_words, q_values, e_values):
                     # for each tag S_k-1, calculate the sum of q(S_k-2, S_k-1, S_k)*pi(k-1, S_k-2, S_k-1) for each possible tag S_K-2
                     sum = float(0)
                     for tag_k_2 in taglist:
+                        # q_val_log = q_values.get((tag_k_2, tag_k_1, tag_k), LOG_PROB_OF_ZERO)
+                        # q_val = 2 ** q_val_log
                         q_val = 2 ** q_values[(tag_k_2, tag_k_1, tag_k)] if (tag_k_2, tag_k_1, tag_k) in q_values else 0
                         sum += pi_list[k-1][(tag_k_2, tag_k_1)] * q_val
 
                     # update this pi(k, S_k-1, S_K)
                     pi[(tag_k_1, tag_k)] = sum * e_val
+
             pi_list.append(pi)
 
         # the probability of the sentence is sum of pi(n, S_n-1, S_n)*q(S_n-1, S_n, STOP_SYMBOL)
         prob = 0
         for pair in pi_list[n]:
+            # q_val_log = q_values.get((pair[0], pair[1], STOP_SYMBOL), LOG_PROB_OF_ZERO)
+            # q_val = 2 ** q_val_log
             q_val = 2 ** q_values[(pair[0], pair[1], STOP_SYMBOL)] if (pair[0], pair[1], STOP_SYMBOL) in q_values else 0
             prob += pi_list[n][pair] * q_val
 
@@ -258,6 +263,85 @@ def q5_output(tagged, filename):
 # original words of the sentence!
 def viterbi(brown_dev_words, taglist, known_words, q_values, e_values):
     tagged = []
+
+    for bw in brown_dev_words:
+        n = len(bw)
+
+        # pi_list is a list of defaultdict(float), presumably using dict is faster than a 3-d matrix
+        # the length of pi_list is n+1, where [0] is for START_SYMBOL
+        pi_list = []
+
+        # bp_list is a list of dict() for back pointers
+        bp_list = []
+
+        # init, pi(0, *, *) = 1
+        pi = defaultdict(float)
+        pi[(START_SYMBOL, START_SYMBOL)] = 1
+        pi_list.append(pi)
+
+        for k in range(1, n+1):
+            # calculate pi(k, S_k, S_k-1) for all possible (S_k, S_k-1)
+            pi = defaultdict(float)
+            bp = {}
+            word = bw[k-1] if bw[k-1] in known_words else RARE_SYMBOL
+
+            for tag_k in taglist:
+                # of each possible tag S_k, if the emission probability (word, tag) == 0, skip
+                e_val = 2 ** e_values[(word, tag_k)] if (word, tag_k) in e_values else 0
+                if e_val == 0:
+                    continue
+
+                for tag_k_1 in taglist:
+                    # for each tag S_k-1, calculate the max of q(S_k-2, S_k-1, S_k)*pi(k-1, S_k-2, S_k-1) for each possible tag S_K-2
+                    pi_max = 0
+                    tag_max = 'NA'
+                    for tag_k_2 in taglist:
+                        # q_val_log = q_values.get((tag_k_2, tag_k_1, tag_k), LOG_PROB_OF_ZERO)
+                        # q_val = 2 ** q_val_log
+                        q_val = 2 ** q_values[(tag_k_2, tag_k_1, tag_k)] if (tag_k_2, tag_k_1, tag_k) in q_values else 0
+                        pi_val = pi_list[k-1][(tag_k_2, tag_k_1)] * q_val * e_val
+                        if pi_val > pi_max:
+                            pi_max = pi_val
+                            tag_max = tag_k_2
+
+                    # update this pi(k, S_k-1, S_K)
+                    pi[(tag_k_1, tag_k)] = pi_max
+                    bp[(tag_k_1, tag_k)] = tag_max
+
+            pi_list.append(pi)
+            bp_list.append(bp)
+
+        # find the max of pi(n, S_n-1, S_n)*q(S_n-1, S_n, STOP_SYMBOL)
+        pi_max = 0
+        pair_max = ('NA', 'NA')
+        for pair in pi_list[n]:
+            # q_val_log = q_values.get((pair[0], pair[1], STOP_SYMBOL), LOG_PROB_OF_ZERO)
+            # q_val = 2 ** q_val_log
+            q_val = 2 ** q_values[(pair[0], pair[1], STOP_SYMBOL)] if (pair[0], pair[1], STOP_SYMBOL) in q_values else 0
+            pi_val = pi_list[n][pair] * q_val
+            if pi_val > pi_max:
+                pi_max = pi_val
+                pair_max = pair
+
+        # reconstruct the maximum likelihood tag sequence, from tail to head
+        tags = [''] * n
+        tag_k = pair_max[1]
+        tag_k_1 = pair_max[0]
+        tags[n-1] = tag_k
+        tags[n-2] = tag_k_1
+        for i in range(n-3, -1, -1):
+            tag_k_2 = bp_list[i+2].get((tag_k_1, tag_k), 'NA')
+            tags[i] = tag_k_2
+            tag_k = tag_k_1
+            tag_k_1 = tag_k_2
+
+        # tagged sentence
+        tagged.append(' '.join(w + '/' + t for (w,t) in zip(bw, tags)) + '\n')
+        
+    print "\nB6 verifications"
+    print tagged[0]
+    print tagged[1]
+
     return tagged
 
 # This function takes the output of viterbi() and outputs it to file
@@ -341,15 +425,15 @@ def main():
         brown_dev_words.append(sentence.split(" ")[:-1])
 
     # question 5
-    forward_probs = forward(brown_dev_words,taglist, known_words, q_values, e_values)
-    q5_output(forward_probs, OUTPUT_PATH + 'B5.txt')
-    return
+    #forward_probs = forward(brown_dev_words,taglist, known_words, q_values, e_values)
+    #q5_output(forward_probs, OUTPUT_PATH + 'B5.txt')
+
     # do viterbi on brown_dev_words (question 6)
     viterbi_tagged = viterbi(brown_dev_words, taglist, known_words, q_values, e_values)
 
     # question 6 output
     q6_output(viterbi_tagged, OUTPUT_PATH + 'B6.txt')
-
+    return
     # do nltk tagging here
     nltk_tagged = nltk_tagger(brown_words, brown_tags, brown_dev_words)
 
