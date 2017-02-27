@@ -1,21 +1,26 @@
 from providedcode import dataset
+from providedcode.dependencygraph import DependencyGraph
 from providedcode.transitionparser import TransitionParser
 from providedcode.evaluate import DependencyEvaluator
 from featureextractor import FeatureExtractor
 from transition import Transition
 
 if __name__ == '__main__':
-    traindata = dataset.get_swedish_train_corpus().parsed_sents()
+    # traindata = dataset.get_swedish_train_corpus().parsed_sents()
+    traindata = dataset.get_english_train_corpus().parsed_sents()
 
 
     try:
 
         # tp = TransitionParser(Transition, FeatureExtractor)
         # tp.train(traindata)
-        # tp.save('swedish.model')
+        # # tp.save('swedish.model')
+        # tp.save('english.model')
 
         labeleddata = dataset.get_swedish_dev_corpus().parsed_sents()
+        # labeleddata = dataset.get_english_dev_corpus().parsed_sents()
         blinddata = dataset.get_swedish_dev_blind_corpus().parsed_sents()
+        # blinddata = dataset.get_english_dev_blind_corpus().parsed_sents()
         tp = TransitionParser.load('badfeatures.model')
 
         parsed = tp.parse(blinddata)
@@ -30,6 +35,7 @@ if __name__ == '__main__':
 
         # parsing arbitrary sentences (english):
         # sentence = DependencyGraph.from_sentence('Hi, this is a test')
+        # sentence = DependencyGraph.from_sentence('The team eliminated the crisis')
 
         # tp = TransitionParser.load('english.model')
         # parsed = tp.parse([sentence])

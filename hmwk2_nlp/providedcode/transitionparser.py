@@ -154,6 +154,7 @@ class TransitionParser(object):
                 if conf.stack:
                     s0 = conf.stack[-1]
                     # Left-arc operation
+                    # if any relation (b0, *, s0) is in dependency tree
                     rel = self._get_dep_relation(b0, s0, depgraph)
                     if rel is not None:
                         key = self.transitions.LEFT_ARC + ':' + rel
@@ -163,11 +164,18 @@ class TransitionParser(object):
                         continue
 
                     # Implement right-arc operation
-
-
-
-
-
+                    # Reference of arc-eager dependency parsing oracle:
+                    # http://www.aclweb.org/anthology/C12-1059
+                    # by Yoav Goldberg and Joakim Nivre
+                    #
+                    # if any relation (s0, *, b0) is in dependency tree
+                    rel = self._get_dep_relation(s0, b0, depgraph)
+                    if rel is not None:
+                        key = self.transitions.RIGHT_ARC + ':' + rel
+                        self._write_to_file(key, binary_features, input_file)
+                        self.transitions.right_arc(conf, rel)
+                        training_seq.append(key)
+                        continue
 
                     # reduce operation
                     flag = False
@@ -185,11 +193,10 @@ class TransitionParser(object):
                         continue
 
                 # Implement shift operation here
-
-
-
-
-
+                key = self.transitions.SHIFT
+                self._write_to_file(key, binary_features, input_file)
+                self.transitions.shift(conf)
+                training_seq.append(key)
 
         print(" Number of training examples : {}".format(len(depgraphs)))
         print(" Number of valid (projective) examples : {}".format(countProj))
@@ -207,6 +214,7 @@ class TransitionParser(object):
                 dir=tempfile.gettempdir(),
                 delete=False)
 
+            # input_file1 = open('tmp1', 'w')
             self._create_training_examples_arc_eager(depgraphs, input_file)
 
             input_file.close()
