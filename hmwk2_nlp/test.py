@@ -2,35 +2,71 @@ from providedcode import dataset
 from providedcode.dependencygraph import DependencyGraph
 from providedcode.transitionparser import TransitionParser
 from providedcode.evaluate import DependencyEvaluator
-from featureextractor import FeatureExtractor
+from featureextractor import FeatureExtractor, set_feature_option
 from transition import Transition
+from re import match
+import sys
+import time
 
 if __name__ == '__main__':
-    # traindata = dataset.get_swedish_train_corpus().parsed_sents()
-    traindata = dataset.get_english_train_corpus().parsed_sents()
+
+    if len(sys.argv) != 3:
+        print 'Wrong input arguments'
+        exit(1)
+
+    arg_lan = sys.argv[1].lower()
+    if arg_lan in ['english', 'en', 'eng']:
+        language = 'english'
+    elif arg_lan in ['swedish', 'sw', 'swe']:
+        language = 'swedish'
+    else:
+        print 'Invalid arguments: ' + arg_lan
+        exit(1)
+
+    arg_fo = sys.argv[2].lower()
+    feature_options = sys.argv[2].lower().split('-')
+    for fo in feature_options:
+        if not match(r's0|s1|b0|b1|b2|b3[f|t|c]', fo):
+            print "Invalid argument: " + fo
+            exit(1)
+    set_feature_option(feature_options)
+
+
+    if language is 'swedish':
+        traindata = dataset.get_swedish_train_corpus().parsed_sents()
+    else:
+        traindata = dataset.get_english_train_corpus().parsed_sents()
 
 
     try:
+        time.clock()
+        tp = TransitionParser(Transition, FeatureExtractor)
+        tp.train(traindata)
 
-        # tp = TransitionParser(Transition, FeatureExtractor)
-        # tp.train(traindata)
-        # # tp.save('swedish.model')
-        # tp.save('english.model')
+        fname = language + '.' + arg_fo
+        tp.save(fname + '.model')
+        # tp.save('swedish.model')
 
-        labeleddata = dataset.get_swedish_dev_corpus().parsed_sents()
-        # labeleddata = dataset.get_english_dev_corpus().parsed_sents()
-        blinddata = dataset.get_swedish_dev_blind_corpus().parsed_sents()
-        # blinddata = dataset.get_english_dev_blind_corpus().parsed_sents()
-        tp = TransitionParser.load('badfeatures.model')
+        if language is 'swedish':
+            labeleddata = dataset.get_swedish_dev_corpus().parsed_sents()
+            blinddata = dataset.get_swedish_dev_blind_corpus().parsed_sents()
+        else:
+            labeleddata = dataset.get_english_dev_corpus().parsed_sents()
+            blinddata = dataset.get_english_dev_blind_corpus().parsed_sents()
+        
+        # tp = TransitionParser.load('badfeatures.model')
 
         parsed = tp.parse(blinddata)
 
-        with open('test.conll', 'w') as f:
+        with open(fname + '.conll', 'w') as f:
             for p in parsed:
                 f.write(p.to_conll(10).encode('utf-8'))
                 f.write('\n')
 
         ev = DependencyEvaluator(labeleddata, parsed)
+        print "\n-----------------------------------------------"
+        print "language: " + language + "\tfeatures: " + arg_fo
+        print "time: " + str(time.clock()) + ' sec'
         print "UAS: {} \nLAS: {}".format(*ev.eval())
 
         # parsing arbitrary sentences (english):

@@ -1,6 +1,13 @@
 from nltk.compat import python_2_unicode_compatible
 
-printed = False
+printed = True
+
+feature_options = []
+
+def set_feature_option(options):
+    global feature_options
+    feature_options = options
+
 
 @python_2_unicode_compatible
 class FeatureExtractor(object):
@@ -66,6 +73,8 @@ class FeatureExtractor(object):
             print("This is not a very good feature extractor!")
             printed = True
 
+        global feature_options
+
         # an example set of features:
         if stack:
             stack_idx0 = stack[-1]
@@ -86,6 +95,26 @@ class FeatureExtractor(object):
             if FeatureExtractor._check_informative(dep_right_most):
                 result.append('STK_0_RDEP_' + dep_right_most)
 
+            # (C)POSTAG
+            if 's0t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('STK_0_TAG_' + token['tag'])
+            if 's0c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('STK_0_CTAG_' + token['ctag'])
+
+        # STK[1]
+        if len(stack) >= 2 and [ f for f in feature_options if 's1' in f ]:
+            stack_idx1 = stack[-2]
+            token = tokens[stack_idx1]
+
+            if 's1t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('STK_1_TAG_' + token['tag'])
+            if 's1c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('STK_1_CTAG_' + token['ctag'])
+
         if buffer:
             buffer_idx0 = buffer[0]
             token = tokens[buffer_idx0]
@@ -103,5 +132,54 @@ class FeatureExtractor(object):
                 result.append('BUF_0_LDEP_' + dep_left_most)
             if FeatureExtractor._check_informative(dep_right_most):
                 result.append('BUF_0_RDEP_' + dep_right_most)
+
+            # (C)POSTAG
+            if 'b0t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('BUF_0_TAG_' + token['tag'])
+            if 'b0c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('BUF_0_CTAG_' + token['ctag'])
+
+
+        # BUF[1]
+        if len(buffer) >= 2 and [ f for f in feature_options if 'b1' in f ]:
+            buffer_idx1 = buffer[1]
+            token = tokens[buffer_idx1]
+
+            if 'b1f' in feature_options:
+                if FeatureExtractor._check_informative(token['word'], True):
+                    result.append('BUF_1_FORM_' + token['word'])
+
+            if 'b1t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('BUF_1_TAG_' + token['tag'])
+            if 'b1c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('BUF_1_CTAG_' + token['ctag'])
+
+        # BUF[2]
+        if len(buffer) >= 3 and [ f for f in feature_options if 'b2' in f ]:
+            buffer_idx2 = buffer[2]
+            token = tokens[buffer_idx2]
+
+            if 'b2t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('BUF_2_TAG_' + token['tag'])
+            if 'b2c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('BUF_2_CTAG_' + token['ctag'])
+
+        # BUF[3]
+        if len(buffer) >= 4 and [ f for f in feature_options if 'b3' in f ]:
+            buffer_idx3 = buffer[3]
+            token = tokens[buffer_idx3]
+
+            if 'b3t' in feature_options:
+                if FeatureExtractor._check_informative(token['tag']):
+                    result.append('BUF_3_TAG_' + token['tag'])
+            if 'b3c' in feature_options:
+                if FeatureExtractor._check_informative(token['ctag']):
+                    result.append('BUF_3_CTAG_' + token['ctag'])
 
         return result
