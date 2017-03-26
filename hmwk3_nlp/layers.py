@@ -135,7 +135,7 @@ class SimpleRNN:
 
         states = []
         for i in input:
-            h_0 = tanh(W_x * i + W_h * h_0 + b)
+            h_0 = nonlinearities['tanh'](W_x * i + W_h * h_0 + b)
             states.append(h_0)
 
         return [states]
@@ -230,5 +230,19 @@ class LSTM:
             c_0 = c_start
         
         #IMPLEMENT YOUR LSTM CODE HERE
-        raise NotImplementedError
+        # raise NotImplementedError
+        if self.reverse:
+            input = reversed(input)
 
+        states = []
+        cells = []
+        for i in input:
+            ft = nonlinearities['sigmoid'](W_f * i + U_f * h_0 + b_f)
+            it = nonlinearities['sigmoid'](W_i * i + U_i * h_0 + b_i)
+            ot = nonlinearities['sigmoid'](W_o * i + U_o * h_0 + b_o)
+            c_0 = cmult(ft, c_0) + cmult(it, nonlinearities['tanh'](W_c * i + U_c * h_0 + b_c))
+            h_0 = cmult(ot, nonlinearities['tanh'](c_0))
+            states.append(h_0)
+            cells.append(c_0)
+
+        return [states, cells]
