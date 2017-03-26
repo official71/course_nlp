@@ -72,7 +72,12 @@ class MLP:
         b_o = parameter(self.b_o)
 
         #IMPLEMENT YOUR CODE BELOW
-        raise NotImplementedError
+        # raise NotImplementedError
+        x = input
+        for w, b in zip(weights, biases):
+            output = nonlinearities[self.hidden_nonlinearity](w * x + b)
+            x = output
+        return nonlinearities[self.output_nonlinearity](W_o * x + b_o)
         
 class SimpleRNN:
     '''
@@ -124,8 +129,17 @@ class SimpleRNN:
             h_0 = h_start
 
         #YOUR IMPLEMENTATION HERE
-        raise NotImplementedError
-        
+        # raise NotImplementedError
+        if self.reverse:
+            input = reversed(input)
+
+        states = []
+        for i in input:
+            h_0 = tanh(W_x * i + W_h * h_0 + b)
+            states.append(h_0)
+
+        return [states]
+
 class LSTM:
     '''
     Long Short-term Memory Network for sequence modeling
