@@ -16,7 +16,8 @@ def main(train_file, test_file, output, model, num_epochs, embeddings_init=None,
     print('reading test...')    
     test = list(utils.read_conll(test_file))
     print('read {} examples'.format(len(test)))
-    
+    # for i in test[0]:
+    #     print i.norm
     print 'Initializing lstm parser:'
     parser = graphParser.GraphParser(vocab.num_words,
                                      vocab.num_rel,
@@ -35,7 +36,15 @@ def main(train_file, test_file, output, model, num_epochs, embeddings_init=None,
         loss = 0
 
         #shuffle the training data
-        random.shuffle(train)
+
+
+
+        # random.shuffle(train)
+
+
+
+
+
 
         #convert to indices, sample, etc
         indices, pos_indices, gold_arcs, gold_labels = vocab.process(train)
