@@ -3,17 +3,33 @@ from collections import Counter
 import re
 
 import numpy as np
+import math
+from random import random
 
 #tokens for unknown words and numbers
 UNKNOWN = '__UNK__'
 NUMBER = '__NUM__'
 
 #IMPLEMENT THE NORMALIZE METHOD HERE
+# is string s a numeric representation?
+# inspired by the answers in:
+# http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-float-in-python
+def is_numeric(s):
+    try:
+        if not math.isnan(float(s)):
+            return True
+        return False
+    except ValueError:
+        return False
+
 def normalize(word):
     '''
     takes in a word string and returns the NUMBER token if a number and lowercase otherwise
     '''
-    raise NotImplementedError
+    # raise NotImplementedError
+    if is_numeric(word):
+        return NUMBER
+    return word.lower()
 
 class ConllEntry:
     '''
@@ -107,7 +123,48 @@ class Vocabulary:
         '''
 
         #YOUR IMPLEMENTATION GOES HERE
-        raise NotImplementedError
+        # raise NotImplementedError
+        indices, pos_indices, arcs, labels = [], [], [], []
+        for se in data:
+            i, p, a, l = [], [], [], []
+            for w in se:
+                # indices
+                idx = self.word2idx.get(w.norm)
+                if idx is None:
+                    i.append(self.word2idx[UNKNOWN])
+                elif not deterministic and random() < 0.25 / (0.25 + self.words[w.norm]):
+                    # random sampling
+                    # print "random sampling occurred for " + w.norm + " from " + str(idx)
+                    i.append(self.word2idx[UNKNOWN])
+                else:
+                    # don't do sampling
+                    i.append(idx)
+
+                # pos_indices
+                pos = self.pos2idx.get(w.pos)
+                if pos is None:
+                    print "Should not happen: unseen POS " + w.pos
+                    p.append(-1)
+                else:
+                    p.append(pos)
+
+                # arcs
+                a.append(w.parent_id)
+
+                # labels
+                label = self.rel2idx.get(w.relation)
+                if label is None:
+                    print "Should not happen: unseen rel " + w.relation
+                    l.append(-1)
+                else:
+                    l.append(label)
+
+            indices.append(i)
+            pos_indices.append(p)
+            arcs.append(a)
+            labels.append(l)
+        return indices, pos_indices, arcs, labels
+
         
     def entry(self, indices, pos_indices, arcs, labels):
         '''
