@@ -36,15 +36,7 @@ def main(train_file, test_file, output, model, num_epochs, embeddings_init=None,
         loss = 0
 
         #shuffle the training data
-
-
-
-        # random.shuffle(train)
-
-
-
-
-
+        random.shuffle(train)
 
         #convert to indices, sample, etc
         indices, pos_indices, gold_arcs, gold_labels = vocab.process(train)
