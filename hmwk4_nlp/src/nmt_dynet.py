@@ -7,6 +7,8 @@ from bleu import get_bleu_score
 import json
 
 RNN_BUILDER = GRUBuilder
+START_SYMBOL = '<s>'
+STOP_SYMBOL = '</s>'
 
 class nmt_dynet:
 
@@ -32,19 +34,19 @@ class nmt_dynet:
 
         # YOUR IMPLEMENTATION GOES HERE
         # project the decoder output to a vector of tgt_vocab_size length
-        self.output_w = None
-        self.output_b = None
+        self.output_w = self.model.add_parameters((tgt_vocab_size, gru_d))
+        self.output_b = self.model.add_parameters((tgt_vocab_size, ))
 
         # encoder network
         # the foreword rnn
-        self.fwd_RNN = None
+        self.fwd_RNN = RNN_BUILDER(gru_layers, word_d, gru_d, self.model)
         # the backword rnn
-        self.bwd_RNN = None
+        self.bwd_RNN = RNN_BUILDER(gru_layers, word_d, gru_d, self.model)
 
         # decoder network
-        self.dec_RNN = None
+        self.dec_RNN = RNN_BUILDER(gru_layers, word_d + 2 * gru_d, gru_d, self.model)
 
-        raise NotImplementedError
+        # raise NotImplementedError
 
 
     def encode(self, src_sentence):
@@ -54,7 +56,19 @@ class nmt_dynet:
         '''
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        fwd_s = self.fwd_RNN.initial_state()
+        for w in src_sentence:
+            fwd_s = fwd_s.add_input(self.source_embeddings[w])
+        fwd_o = fwd_s.output()
+
+        bwd_s = self.bwd_RNN.initial_state()
+        for w in reversed(src_sentence):
+            bwd_s = bwd_s.add_input(self.source_embeddings[w])
+        bwd_o = bwd_s.output()
+
+        # return fwd_o + bwd_o
+        return concatenate([fwd_o, bwd_o])
 
 
     def get_loss(self, src_sentence, tgt_sentence):
@@ -67,7 +81,29 @@ class nmt_dynet:
 
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        src_sentence = [self.src_word2idx[w] for w in src_sentence]
+        tgt_sentence = [self.tgt_word2idx[w] for w in tgt_sentence]
+        
+        h_m = self.encode(src_sentence)
+
+        output_w = parameter(self.output_w)
+        output_b = parameter(self.output_b)
+
+        s = self.dec_RNN.initial_state()
+        s = s.add_input(concatenate([self.target_embeddings[tgt_sentence[0]], h_m]))
+
+        loss = []
+        for ind, target in enumerate(tgt_sentence[1:]):
+            state = s.output()
+            probs = softmax(output_w * state + output_b)
+            loss.append(-log(pick(probs, target)))
+
+            # w = np.argmax(probs.npvalue())
+            # s = s.add_input(concatenate([self.target_embeddings[w], h_m]))
+            s = s.add_input(concatenate([self.target_embeddings[target], h_m]))
+        return esum(loss)
+
 
     def generate(self, src_sentence):
         '''
@@ -78,7 +114,27 @@ class nmt_dynet:
 
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        src_sentence = [self.src_word2idx[w] for w in src_sentence]
+
+        h_m = self.encode(src_sentence)
+
+        output_w = parameter(self.output_w)
+        output_b = parameter(self.output_b)
+        s = self.dec_RNN.initial_state()
+        w = self.tgt_word2idx[START_SYMBOL]
+        out = [START_SYMBOL]
+        while True:
+            s = s.add_input(concatenate([self.target_embeddings[w], h_m]))
+            h = s.output()
+            probs = softmax(output_w * h + output_b)
+            w = np.argmax(probs.npvalue())
+
+            out.append(self.tgt_idx2word[w])
+            if out[-1] == STOP_SYMBOL or len(out) > 100: break
+
+        return out
+
 
     def translate_all(self, src_sentences):
         translated_sentences = []
