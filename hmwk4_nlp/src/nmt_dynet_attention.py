@@ -7,6 +7,8 @@ from bleu import get_bleu_score
 import json
 
 RNN_BUILDER = GRUBuilder
+START_SYMBOL = '<s>'
+STOP_SYMBOL = '</s>'
 
 class nmt_dynet_attention:
 
@@ -29,26 +31,28 @@ class nmt_dynet_attention:
         self.source_embeddings = self.model.add_lookup_parameters((self.src_vocab_size, self.word_d))
         self.target_embeddings = self.model.add_lookup_parameters((self.tgt_vocab_size, self.word_d))
 
+
         # YOUR IMPLEMENTATION GOES HERE
         # project the decoder output to a vector of tgt_vocab_size length
-        self.output_w = None
-        self.output_b = None
+        self.output_w = self.model.add_parameters((tgt_vocab_size, gru_d))
+        self.output_b = self.model.add_parameters((tgt_vocab_size, ))
 
         # attention weights
-        self.attention_w1 = None
-        self.attention_w2 = None
-        self.attention_v = None
+        self.attention_w1 = self.model.add_parameters((gru_d, gru_d))
+        self.attention_w2 = self.model.add_parameters((gru_d, 2 * gru_d))
+        self.attention_v = self.model.add_parameters((1, gru_d))
 
         # encoder network
         # the foreword rnn
-        self.fwd_RNN = None
+        self.fwd_RNN = RNN_BUILDER(gru_layers, word_d, gru_d, self.model)
         # the backword rnn
-        self.bwd_RNN = None
+        self.bwd_RNN = RNN_BUILDER(gru_layers, word_d, gru_d, self.model)
 
         # decoder network
-        self.dec_RNN = None
+        self.dec_RNN = RNN_BUILDER(gru_layers, word_d + 2 * gru_d, gru_d, self.model)
 
-        raise NotImplementedError
+        # raise NotImplementedError
+
 
     def encode(self, src_sentence):
         '''
@@ -57,9 +61,26 @@ class nmt_dynet_attention:
         '''
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        fwd_s = self.fwd_RNN.initial_state()
+        fwd_states = []
+        for w in src_sentence:
+            fwd_s = fwd_s.add_input(self.source_embeddings[w])
+            fwd_states.append(fwd_s.output())
 
-    def attend(self, input_vectors, state):
+        bwd_s = self.bwd_RNN.initial_state()
+        bwd_states = []
+        for w in reversed(src_sentence):
+            bwd_s = bwd_s.add_input(self.source_embeddings[w])
+            bwd_states.append(bwd_s.output())
+
+        states = []
+        for f, b in zip(fwd_states, reversed(bwd_states)):
+            states.append(concatenate([f, b]))
+
+        return states
+
+    def attend(self, input_vectors, state=None):
 
         '''
         input_vectors: hidden states of the encoder
@@ -68,7 +89,24 @@ class nmt_dynet_attention:
         '''
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        if state is None:
+            state = vecInput(self.gru_d)
+            state.set([0] * self.gru_d)
+
+        w1 = parameter(self.attention_w1)
+        w2 = parameter(self.attention_w2)
+        v = parameter(self.attention_v)
+
+        l = len(input_vectors)
+        m1 = concatenate_cols([state] * l)
+        m2 = concatenate_cols(input_vectors)
+
+        e = v * tanh(w1 * m1 + w2 * m2)
+        alpha = softmax(e[0]) # need to subscript as e is a 1 * l matrix not vector
+
+        c = m2 * alpha
+        return c
 
 
     def get_loss(self, src_sentence, tgt_sentence):
@@ -77,22 +115,63 @@ class nmt_dynet_attention:
         tgt_sentence: words in tgt sentence
         return loss for this source target sentence pair
         '''
-
         renew_cg()
+
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        src_sentence = [self.src_word2idx[w] for w in src_sentence]
+        tgt_sentence = [self.tgt_word2idx[w] for w in tgt_sentence]
+        
+        h_m = self.encode(src_sentence)
+
+        output_w = parameter(self.output_w)
+        output_b = parameter(self.output_b)
+
+        s = self.dec_RNN.initial_state()
+        s = s.add_input(concatenate([self.target_embeddings[tgt_sentence[0]], self.attend(h_m)]))
+
+        loss = []
+        for ind, target in enumerate(tgt_sentence[1:]):
+            state = s.output()
+            probs = softmax(output_w * state + output_b)
+            loss.append(-log(pick(probs, target)))
+
+            s = s.add_input(concatenate([self.target_embeddings[target], self.attend(h_m, state)]))
+        return esum(loss)
+
 
     def generate(self, src_sentence):
         '''
         src_sentence: list of words in the source sentence (i.e output of .strip().split(' '))
         return list of words in the target sentence
         '''
-
         renew_cg()
+
         # YOUR IMPLEMENTATION GOES HERE
 
-        raise NotImplementedError
+        # raise NotImplementedError
+        src_sentence = [self.src_word2idx[w] for w in src_sentence]
+
+        h_m = self.encode(src_sentence)
+
+        output_w = parameter(self.output_w)
+        output_b = parameter(self.output_b)
+        s = self.dec_RNN.initial_state()
+        w = self.tgt_word2idx[START_SYMBOL]
+        out = [START_SYMBOL]
+        h = None
+        while True:
+            s = s.add_input(concatenate([self.target_embeddings[w], self.attend(h_m, h)]))
+            h = s.output()
+            probs = softmax(output_w * h + output_b)
+            w = np.argmax(probs.npvalue())
+
+            out.append(self.tgt_idx2word[w])
+            if out[-1] == STOP_SYMBOL or len(out) > 2 * len(src_sentence): break
+
+        return out
+
 
     def translate_all(self, src_sentences):
         translated_sentences = []
@@ -141,7 +220,7 @@ def main(train_src_file, train_tgt_file, dev_src_file, dev_tgt_file, model_file,
 
     print 'Initializing neural machine translator with attention:'
     # src_vocab_size, tgt_vocab_size, tgt_idx2word, word_d, gru_d, gru_layers
-    encoder_decoder = nmt_dynet_attention(len(train_set.source_word2idx), len(train_set.target_word2idx), train_set.source_word2idx, train_set.source_idx2word, train_set.target_word2idx, train_set.target_idx2word, 50, 50, 2)
+    encoder_decoder = nmt_dynet_attention(len(train_set.source_word2idx), len(train_set.target_word2idx), train_set.source_word2idx, train_set.source_idx2word, train_set.target_word2idx, train_set.target_idx2word, 100, 100, 2)
 
     trainer = SimpleSGDTrainer(encoder_decoder.model)
 

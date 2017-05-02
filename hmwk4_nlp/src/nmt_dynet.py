@@ -99,8 +99,6 @@ class nmt_dynet:
             probs = softmax(output_w * state + output_b)
             loss.append(-log(pick(probs, target)))
 
-            # w = np.argmax(probs.npvalue())
-            # s = s.add_input(concatenate([self.target_embeddings[w], h_m]))
             s = s.add_input(concatenate([self.target_embeddings[target], h_m]))
         return esum(loss)
 
